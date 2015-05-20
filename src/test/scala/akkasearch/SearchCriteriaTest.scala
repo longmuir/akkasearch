@@ -44,12 +44,40 @@ with WordSpecLike with Matchers with BeforeAndAfterAll {
   }
 
   "A SearchCriteria Actor" should {
-    "Respond successfully found Person" in {
+    "Find a single person by name or age, with one person indexed" in {
       within(500 millis) {
-        val res = Await.result(searchRef ? FindWithNameAndAge( "dave", 46), 3 seconds)
-        assert(res == Seq(1))
+        searchRef ! AddPerson( Person(1,"dave", 46))
+        expectMsg[Long]( 1 )
+
+        val res = Await.result(searchRef ? FindWithNameOrAge( "dave", 46), 3 seconds)
+        assert(res == Set(1))
       }
     }
+
+    "Find a single person by name or age, with multiple people indexed" in {
+      within(500 millis) {
+        searchRef ! AddPerson( Person(1, "Dave", 15))
+        searchRef ! AddPerson( Person(2, "Dave", 46))
+        searchRef ! AddPerson( Person(3, "Jamie", 15))
+        searchRef ! AddPerson( Person(4, "Jamie", 33))
+
+        val res = Await.result(searchRef ? FindWithNameOrAge("Dave", 15), 3 seconds)
+        assert(res == Set(1, 2, 3))
+      }
+    }
+
+    "Find a single person by name and age, with multiple people indexed" in {
+      within(500 millis) {
+        searchRef ! AddPerson( Person(1, "Dave", 15))
+        searchRef ! AddPerson( Person(2, "Dave", 46))
+        searchRef ! AddPerson( Person(3, "Jamie", 15))
+        searchRef ! AddPerson( Person(4, "Jamie", 33))
+
+        val res = Await.result(searchRef ? FindWithNameAndAge("Dave", 15), 3 seconds)
+        assert(res == Set(1))
+      }
+    }
+
   }
 
 

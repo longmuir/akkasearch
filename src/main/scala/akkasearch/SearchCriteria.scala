@@ -15,7 +15,10 @@ case class Person(id:Long,name:String, age:Int)
 
 case class AddPerson(person:Person)
 
+case class FindWithNameOrAge(name:String, age:Int)
+
 case class FindWithNameAndAge(name:String, age:Int)
+
 
 object SearchCriteria{
 
@@ -33,26 +36,38 @@ class SearchCriteria extends Actor{
 
   def receive: Receive = {
     case  AddPerson(p) =>
-     context.become(hasPeople(Map(p.id -> p)))
+      ageCriteriaRef ! AddPersonWithAge(p.id, p.age)
+      nameCriteriaRef ! AddPersonWithName(p.id, p.name)
+      context.become(hasPeople(Map(p.id -> p)))
       sender ! p.id
   }
 
   def hasPeople(p:Map[Long,Person]):Receive = {
-    case  FindWithNameAndAge(name, age) =>{
-      def combined: Future[Seq[Long]] =  async{
-        val futureAgeResult:Future[Seq[Long]] = (ageCriteriaRef ? GetPeopleWithAge(age)).mapTo[Seq[Long]]
-        val futureNameResult:Future[Seq[Long]] = (ageCriteriaRef ? GetPeopleWithName(name)).mapTo[Seq[Long]]
-        val res = Seq(await(futureAgeResult),  await(futureNameResult)).flatten
-        res
+    case  FindWithNameOrAge(name, age) => {
+      def combined: Future[Set[Long]] =  async{
+        val futureAgeResult:Future[Set[Long]] = (ageCriteriaRef ? GetPeopleWithAge(age)).mapTo[Set[Long]]
+        val futureNameResult:Future[Set[Long]] = (nameCriteriaRef ? GetPeopleWithName(name)).mapTo[Set[Long]]
+        Set(await(futureAgeResult),  await(futureNameResult)).flatten
       }
-
       sender ! Await.result(combined, 2 seconds)
-
     }
+
+    case  FindWithNameAndAge(name, age) => {
+      def combined: Future[Set[Long]] =  async{
+        val futureAgeResult:Future[Set[Long]] = (ageCriteriaRef ? GetPeopleWithAge(age)).mapTo[Set[Long]]
+        val futureNameResult:Future[Set[Long]] = (nameCriteriaRef ? GetPeopleWithName(name)).mapTo[Set[Long]]
+        Set(await(futureAgeResult),  await(futureNameResult)).flatten
+      }
+      sender ! Await.result(combined, 2 seconds)
+    }
+
+
     case  AddPerson(p) =>
+      ageCriteriaRef ! AddPersonWithAge(p.id, p.age)
+      nameCriteriaRef ! AddPersonWithName(p.id, p.name)
       context.become(hasPeople(Map(p.id -> p)))
       sender ! p.id
-
   }
+
 
 }

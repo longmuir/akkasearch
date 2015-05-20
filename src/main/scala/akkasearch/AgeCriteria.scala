@@ -20,9 +20,9 @@ class AgeCriteria extends Actor {
   }
 
   def hasPeople(p:Map[Int,Set[Long]]): Receive = {
-    case AddPersonWithAge(id,name) =>
+    case AddPersonWithAge(id,age) =>
       context.become(
-        hasPeople(p + (name -> p.get(name).fold[Set[Long]](Set(id))(ids => ids + id)))
+        hasPeople(p + (age -> p.get(age).fold[Set[Long]](Set(id))(ids => ids + id)))
       )
     case GetPeopleWithAge(age) =>
       sender ! p.get(age).fold(Set.empty[Long])(identity)
