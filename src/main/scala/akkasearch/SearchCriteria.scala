@@ -56,7 +56,7 @@ class SearchCriteria extends Actor{
       def combined: Future[Set[Long]] =  async{
         val futureAgeResult:Future[Set[Long]] = (ageCriteriaRef ? GetPeopleWithAge(age)).mapTo[Set[Long]]
         val futureNameResult:Future[Set[Long]] = (nameCriteriaRef ? GetPeopleWithName(name)).mapTo[Set[Long]]
-        Set(await(futureAgeResult),  await(futureNameResult)).flatten
+        Set(await(futureAgeResult).intersect(await(futureNameResult))).flatten
       }
       sender ! Await.result(combined, 2 seconds)
     }
